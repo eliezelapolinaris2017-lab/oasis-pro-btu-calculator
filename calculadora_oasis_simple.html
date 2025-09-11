@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de BTU – Oasis (estilo simple)</title>
+<style>
+  :root{--brand:#0b7cff;--accent:#ffb300;--text:#1e2430;--muted:#657187;--bg:#f6f8fc;--card:#ffffff;--border:#e6eaf2}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text)}
+  header{background:#fff;border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0}
+  header .logo{font-weight:800;color:var(--brand)}
+  .container{max-width:840px;margin:18px auto;padding:0 16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 4px 16px rgba(20,24,40,.06)}
+  h1{font-size:22px;margin:8px 0 14px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input,select{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:16px;background:#fff}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:700px){.grid.three{grid-template-columns:repeat(3,1fr)}}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  .btn{border:0;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer}
+  .btn.primary{background:var(--accent);color:#1b1b1b}
+  .btn.ghost{background:#fff;border:1px solid var(--border)}
+  .note{font-size:12px;color:var(--muted)}
+  .checkbox{display:flex;align-items:center;gap:8px;margin-top:12px}
+  .results{margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
+  .res-box{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px}
+  .res-title{font-weight:800;margin-bottom:6px}
+  .badge{display:inline-block;background:#eef4ff;color:#2b5cff;border:1px solid #dfe8ff;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:700}
+  footer{margin:24px 0;color:var(--muted);text-align:center;font-size:12px}
+  .right{float:right}
+  .lang{cursor:pointer;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Oasis Air Cleaner Services LLC</div>
+  <div class="lang" id="lang">ESPAÑOL</div>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h1 id="title">Air conditioning capacity</h1>
+    <div class="badge" id="badgePR">Puerto Rico – warm & humid</div>
+
+    <div class="grid three" style="margin-top:12px;">
+      <div>
+        <label id="lblLen">Length (In Feet)</label>
+        <input type="number" id="len" min="0" step="0.1" placeholder="12">
+      </div>
+      <div>
+        <label id="lblWid">Width (In Feet)</label>
+        <input type="number" id="wid" min="0" step="0.1" placeholder="12">
+      </div>
+      <div>
+        <label id="lblHei">Height</label>
+        <input type="number" id="hei" min="0" step="0.1" value="9">
+        <div class="note" id="stdHeight">Standard Height</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label id="lblFactor">Method / Factor</label>
+        <select id="factor">
+          <option value="70" selected>Puerto Rico (≈70 BTU/ft²)</option>
+          <option value="60">Moderate (≈60 BTU/ft²)</option>
+          <option value="50">Mild (≈50 BTU/ft²)</option>
+          <option value="40">Conservador (40 BTU/ft²)</option>
+        </select>
+      </div>
+      <div class="note" style="margin-top:28px" id="factorNote">The factor is applied to area (L×W). Height is shown as a reference.</div>
+    </div>
+
+    <div class="checkbox">
+      <input type="checkbox" id="accept">
+      <label for="accept" id="terms">I Accept the conditions of use.</label>
+    </div>
+
+    <div class="row">
+      <button class="btn primary" id="calcBtn">CALCULATE</button>
+      <button class="btn ghost" id="clearBtn">Clear</button>
+    </div>
+
+    <div class="results">
+      <div class="res-box">
+        <div class="res-title" id="resTitle">Results</div>
+        <div><b id="calcLabel">BTU/H Calculated:</b> <span id="calc">—</span></div>
+        <div style="margin-top:6px;"><b id="recLabel">BTU/H Recommended:</b> <span id="rec">—</span></div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:10px" id="disclaimer">
+      The results are approximate based on average conditions for Puerto Rico. Contact us for an on‑site professional evaluation.
+    </div>
+  </div>
+</div>
+
+<footer>© <span id="year"></span> Oasis Air Cleaner Services LLC · 787‑664‑3079 · oasisservicespr.com</footer>
+
+<script>
+  const $ = (s)=>document.querySelector(s);
+  const fmt = (n)=> n.toLocaleString('en-US');
+  const caps = [6000,9000,12000,18000,24000,30000,36000,48000,60000];
+
+  // Language toggle EN/ES (default EN like screenshot heading)
+  let es = false;
+  $("#lang").addEventListener("click", ()=>{
+    es = !es;
+    $("#lang").textContent = es ? "ENGLISH" : "ESPAÑOL";
+    $("#title").textContent = es ? "Capacidad de aire acondicionado" : "Air conditioning capacity";
+    $("#lblLen").textContent = es ? "Largo (en pies)" : "Length (In Feet)";
+    $("#lblWid").textContent = es ? "Ancho (en pies)" : "Width (In Feet)";
+    $("#lblHei").textContent = es ? "Altura" : "Height";
+    $("#stdHeight").textContent = es ? "Altura estándar" : "Standard Height";
+    $("#lblFactor").textContent = es ? "Método / Factor" : "Method / Factor";
+    $("#factorNote").textContent = es ? "El factor se aplica al área (L×W). La altura se muestra como referencia." : "The factor is applied to area (L×W). Height is shown as a reference.";
+    $("#terms").textContent = es ? "Acepto las condiciones de uso." : "I Accept the conditions of use.";
+    $("#calcBtn").textContent = es ? "CALCULAR" : "CALCULATE";
+    $("#clearBtn").textContent = es ? "Limpiar" : "Clear";
+    $("#resTitle").textContent = es ? "Resultados" : "Results";
+    $("#calcLabel").textContent = es ? "BTU/H Calculado:" : "BTU/H Calculated:";
+    $("#recLabel").textContent = es ? "BTU/H Recomendado:" : "BTU/H Recommended:";
+    $("#disclaimer").textContent = es
+      ? "Los resultados son aproximados con base en condiciones promedio para Puerto Rico. Contáctanos para una evaluación profesional en sitio."
+      : "The results are approximate based on average conditions for Puerto Rico. Contact us for an on‑site professional evaluation.";
+  });
+
+  function recommend(btu){
+    for(const c of caps){ if(btu <= c) return c; }
+    return caps[caps.length-1];
+  }
+
+  $("#calcBtn").addEventListener("click", ()=>{
+    if(!$("#accept").checked){
+      alert(es ? "Debes aceptar las condiciones de uso." : "You must accept the conditions of use.");
+      return;
+    }
+    const L = +($("#len").value||0);
+    const W = +($("#wid").value||0);
+    const factor = +( $("#factor").value || 70 );
+    const area = Math.max(0, L*W);
+    const btu = Math.round(area * factor);  // estilo PR ~70 BTU/ft² (independiente de altura)
+    const rec = recommend(btu);
+    $("#calc").textContent = fmt(btu);
+    $("#rec").textContent = fmt(rec);
+  });
+
+  $("#clearBtn").addEventListener("click", ()=>{
+    ["#len","#wid"].forEach(s=>$(s).value="");
+    $("#hei").value = 9;
+    $("#calc").textContent = "—";
+    $("#rec").textContent = "—";
+    $("#accept").checked = false;
+  });
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
