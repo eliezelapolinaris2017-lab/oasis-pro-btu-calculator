@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Emisoras de Radio – Puerto Rico</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --ink:#eef2ff; --muted:#94a3b8; --accent:#38bdf8; --chip:#0b1220; --ok:#22c55e; --warn:#f59e0b;
+    --br:14px; --pad:16px; --shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; background:linear-gradient(180deg,#0b0e13, #0f1115);}
+  header{position:sticky; top:0; z-index:40; backdrop-filter:saturate(140%) blur(10px); background:rgba(10,12,18,.7); border-bottom:1px solid #202532}
+  .wrap{max-width:1100px; margin:0 auto; padding:18px 16px;}
+  .title{display:flex; align-items:center; gap:14px}
+  .logo{width:38px; height:38px; border-radius:10px; background:radial-gradient(120% 120% at 30% 20%, #67e8f9, #2563eb 45%, #111827 70%); box-shadow:0 8px 24px rgba(56,189,248,.35)}
+  h1{margin:0; font-size:20px; color:var(--ink)}
+  .sub{color:var(--muted); font-size:12px; margin-top:2px}
+  .controls{display:grid; grid-template-columns:1fr auto; gap:12px; margin-top:14px}
+  .search{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid #1f2733; padding:10px 12px; border-radius:12px}
+  .search input{flex:1; color:var(--ink); font-size:15px; background:transparent; border:0; outline:none}
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{padding:8px 12px; border-radius:999px; background:var(--chip); color:#cbd5e1; border:1px solid #1f2733; cursor:pointer; font-size:13px}
+  .chip.active{outline:2px solid var(--accent); color:var(--ink)}
+  main .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; padding:18px 16px; max-width:1100px; margin:0 auto}
+  .card{background:var(--card); border:1px solid #1f2733; border-radius:var(--br); padding:var(--pad); box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px}
+  .badge{display:inline-flex; align-items:center; gap:6px; padding:4px 8px; font-size:11px; border-radius:999px; background:#0e1726; border:1px solid #223047; color:#c7d2fe}
+  .name{margin:0; color:var(--ink); font-size:18px}
+  .meta{color:var(--muted); font-size:12px; display:flex; gap:10px; flex-wrap:wrap}
+  .tags{display:flex; gap:6px; flex-wrap:wrap}
+  .tag{font-size:11px; padding:4px 8px; border-radius:999px; background:#0b1220; border:1px dashed #273046; color:#a9b4c7}
+  .actions{display:flex; gap:10px; margin-top:4px}
+  .btn{flex:1; text-align:center; padding:10px 12px; border-radius:10px; border:1px solid #263144; color:var(--ink); cursor:pointer; background:#101725}
+  .btn.primary{border-color:#197aa2; background:linear-gradient(180deg,#0b2531,#0e2d3c); box-shadow:0 6px 20px rgba(56,189,248,.25)}
+  .btn:hover{filter:brightness(1.05)}
+  footer.player{position:sticky; bottom:0; z-index:50; backdrop-filter:blur(10px); background:rgba(8,12,18,.85); border-top:1px solid #202532}
+  .playerWrap{max-width:1100px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:12px}
+  .playingDot{width:10px; height:10px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 6px rgba(34,197,94,.15)}
+  .now{display:flex; flex-direction:column}
+  .now b{color:var(--ink); font-size:14px}
+  .now small{color:var(--muted); font-size:12px}
+  audio{width:100%; max-width:420px}
+  .empty{color:#94a3b8; font-size:14px; padding:24px; text-align:center}
+  .count{color:#9aa6bd; font-size:12px; margin-left:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="title">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1>Emisoras de Radio – Puerto Rico</h1>
+        <div class="sub">Directorio rápido con buscador, filtros y reproductor integrado.</div>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="search" title="Buscar por nombre, frecuencia, ciudad o categoría">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#94a3b8" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 0 0 1.57-4.23C15.99 5.61 13.38 3 10.24 3S4.5 5.61 4.5 8.5 7.11 14 10.25 14c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L20 19.49 21.49 18 15.5 14zM10.25 12C8.18 12 6.5 10.32 6.5 8.25S8.18 4.5 10.25 4.5 14 6.18 14 8.25 12.32 12 10.25 12z"/></svg>
+        <input id="q" placeholder="Buscar emisora, p. ej. 'Salsoul', 'NotiUno', 'San Juan'…" autocomplete="off"/>
+      </label>
+      <div class="chips" id="chips">
+        <button class="chip active" data-cat="todas">Todas</button>
+        <button class="chip" data-cat="Noticias">Noticias</button>
+        <button class="chip" data-cat="Salsa">Salsa</button>
+        <button class="chip" data-cat="Urbano">Urbano</button>
+        <button class="chip" data-cat="Pop">Pop</button>
+        <button class="chip" data-cat="Clásica">Clásica</button>
+        <button class="chip" data-cat="Universitaria">Universitaria</button>
+        <button class="chip" data-cat="Cristiana">Cristiana</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="wrap"><div id="empty" class="empty" style="display:none">No se encontraron emisoras con ese criterio.</div></div>
+</main>
+
+<footer class="player">
+  <div class="playerWrap">
+    <div class="playingDot" id="dot" title="Estado"></div>
+    <div class="now">
+      <b id="nowName">Nada reproduciéndose</b>
+      <small id="nowMeta">Selecciona una emisora y presiona “Escuchar”.</small>
+    </div>
+    <audio id="audio" controls preload="none"></audio>
+  </div>
+</footer>
+
+<script>
+  // 🔧 EDITA/AGREGA EMISORAS AQUÍ:
+  const stations = [
+    { name:"WKAQ 580", freq:"AM 580", city:"San Juan", categories:["Noticias"], website:"https://www.wkaq580.com", stream:"" },
+    { name:"NotiUno 630", freq:"AM 630", city:"San Juan", categories:["Noticias"], website:"https://www.notiuno.com", stream:"" },
+    { name:"Radio Isla 1320", freq:"AM 1320", city:"San Juan", categories:["Noticias"], website:"https://radioisla.tv", stream:"" },
+    { name:"Zeta 93", freq:"FM 93.7", city:"San Juan", categories:["Salsa"], website:"https://zeta93.com", stream:"" },
+    { name:"Salsoul 99.1", freq:"FM 99.1", city:"San Juan", categories:["Salsa"], website:"https://salsoul.com", stream:"" },
+    { name:"KQ 105", freq:"FM 105.1", city:"San Juan", categories:["Pop"], website:"https://kq105.com", stream:"" },
+    { name:"La Mega 106.9", freq:"FM 106.9", city:"San Juan", categories:["Urbano","Pop"], website:"https://lamega.fm", stream:"" },
+    { name:"La X 100.7", freq:"FM 100.7", city:"Arecibo/San Juan", categories:["Pop"], website:"https://lax.fm", stream:"" },
+    { name:"WRTU Radio Universidad", freq:"FM 89.7", city:"San Juan", categories:["Universitaria","Clásica"], website:"https://www.wrtu.pr", stream:"" },
+    { name:"WIPR Allegro", freq:"FM 91.3", city:"San Juan", categories:["Clásica"], website:"https://allegro.pr", stream:"" },
+    { name:"Nueva Vida", freq:"FM 97.7", city:"Área Metro", categories:["Cristiana"], website:"https://nuevavida.fm", stream:"" },
+    // Ejemplo con stream DEMO (prueba de reproductor):
+    { name:"Demo Stream", freq:"Online", city:"—", categories:["Pop"], website:"#", stream:"https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one" }
+  ];
+
+  // —— LÓGICA DE UI ——
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  const q = document.getElementById('q');
+  const chips = document.getElementById('chips');
+  const audio = document.getElementById('audio');
+  const nowName = document.getElementById('nowName');
+  const nowMeta = document.getElementById('nowMeta');
+  const dot = document.getElementById('dot');
+
+  let activeCat = 'todas';
+
+  function render(list){
+    grid.innerHTML = '';
+    list.forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <span class="badge" title="Frecuencia">${s.freq}</span>
+        <h3 class="name">${s.name}</h3>
+        <div class="meta">
+          <span>📍 ${s.city}</span>
+          <span class="count">• ${s.categories.join(' · ')}</span>
+        </div>
+        <div class="tags">${s.categories.map(c=>`<span class="tag">${c}</span>`).join('')}</div>
+        <div class="actions">
+          <a class="btn" href="${s.website||'#'}" target="_blank" rel="noopener">Sitio web</a>
+          <button class="btn primary" ${s.stream?'':'title="Añade un URL de stream en el JSON de la emisora para habilitar el reproductor"'} ${s.stream?'':'disabled'}>Escuchar</button>
+        </div>
+      `;
+      card.querySelector('.primary').addEventListener('click', () => playStation(s));
+      grid.appendChild(card);
+    });
+    empty.style.display = list.length ? 'none' : 'block';
+  }
+
+  function playStation(s){
+    if(!s.stream){ return; }
+    audio.src = s.stream;
+    audio.play().catch(()=>{ /* evitar errores de autoplay */ });
+    nowName.textContent = s.name;
+    nowMeta.textContent = `${s.freq} · ${s.city}`;
+    dot.style.background = 'var(--ok)';
+  }
+
+  function filter(){
+    const text = (q.value||'').trim().toLowerCase();
+    const list = stations.filter(s=>{
+      const inCat = activeCat==='todas' ? true : s.categories.includes(activeCat);
+      const inText = !text ? true :
+        [s.name,s.freq,s.city,(s.categories||[]).join(' ')].join(' ').toLowerCase().includes(text);
+      return inCat && inText;
+    });
+    render(list);
+  }
+
+  q.addEventListener('input', filter);
+
+  chips.addEventListener('click', e=>{
+    if(!e.target.classList.contains('chip')) return;
+    [...chips.querySelectorAll('.chip')].forEach(c=>c.classList.remove('active'));
+    e.target.classList.add('active');
+    activeCat = e.target.dataset.cat;
+    filter();
+  });
+
+  audio.addEventListener('pause', ()=> dot.style.background = '#64748b');
+  audio.addEventListener('playing', ()=> dot.style.background = 'var(--ok)');
+
+  // Inicial
+  render(stations);
+</script>
+</body>
+</html>
