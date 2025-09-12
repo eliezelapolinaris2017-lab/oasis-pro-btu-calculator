@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini Red Social · Oasis</title>
+<style>
+  :root { --bg:#0f1115; --panel:#161a22; --text:#e6e6e6; --muted:#9aa4b2; --line:#222936; --accent:#0ea5e9; --good:#22c55e; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,"Helvetica Neue",sans-serif; }
+  header { position:sticky; top:0; z-index:10; background:#121621; border-bottom:1px solid var(--line); }
+  .bar { max-width:980px; margin:0 auto; display:flex; gap:10px; align-items:center; padding:12px; }
+  .logo { font-weight:800; letter-spacing:.5px; color:#fff; }
+  .search { flex:1; }
+  .search input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:#0c0f14; color:#fff; }
+  .btn { border:1px solid var(--line); background:var(--accent); color:#fff; padding:10px 14px; border-radius:10px; cursor:pointer; }
+  .btn.ghost { background:#2b3342; }
+  .wrap { max-width:980px; margin:0 auto; padding:16px; display:grid; grid-template-columns: 1fr 320px; gap:16px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; }
+  textarea, input[type="text"], input[type="url"] { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:#0c0f14; color:#fff; }
+  .composer .row { display:flex; gap:8px; margin-top:8px; }
+  .post { display:grid; grid-template-columns: 48px 1fr; gap:12px; padding:12px 0; border-top:1px solid var(--line); }
+  .post:first-child { border-top:none; }
+  .avatar { width:48px; height:48px; border-radius:50%; background:#0c0f14; display:flex; align-items:center; justify-content:center; color:#9bd; font-weight:800; }
+  .meta { color:var(--muted); font-size:13px; }
+  img.media { max-width:100%; border-radius:10px; border:1px solid var(--line); margin-top:8px; }
+  .actions { display:flex; gap:12px; margin-top:8px; color:#cbd5e1; }
+  .pill { font-size:12px; color:#93c5fd; background:#0b1220; border:1px solid var(--line); border-radius:999px; padding:2px 8px; }
+  .sidebar .card { position:sticky; top:74px; }
+  .comment-box { margin-top:8px; display:flex; gap:8px; }
+  .comment { margin-top:8px; padding:8px; background:#0c0f14; border-radius:8px; border:1px solid var(--line); }
+  .hidden { display:none; }
+  .link { color:#93c5fd; text-decoration:none; cursor:pointer; }
+  .danger { color:#ef4444; cursor:pointer; }
+  @media (max-width:900px){ .wrap { grid-template-columns: 1fr; } .sidebar .card { position:static; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="logo">Oasis • MiniRed</div>
+    <div class="search"><input id="q" placeholder="Buscar personas o posts..."></div>
+    <button class="btn ghost" id="btnToggleFeed">Ocultar</button>
+    <button class="btn" id="btnLogout" title="Cerrar sesión">Salir</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <main>
+    <div id="auth" class="card">
+      <h3>Bienvenido 👋</h3>
+      <p class="meta">Elige tu usuario para empezar. Se guarda en tu dispositivo.</p>
+      <div class="row" style="display:flex; gap:8px; margin-top:8px;">
+        <input id="username" placeholder="Tu nombre o @usuario">
+        <button class="btn" id="btnLogin">Entrar</button>
+      </div>
+    </div>
+
+    <div id="composer" class="card hidden composer">
+      <h3>Crear publicación</h3>
+      <textarea id="text" rows="3" placeholder="¿Qué estás pensando?"></textarea>
+      <div class="row">
+        <input id="image" type="url" placeholder="URL de imagen (opcional)">
+        <input id="tags" type="text" placeholder="#etiquetas separadas por espacios">
+        <button class="btn" id="btnPost">Publicar</button>
+      </div>
+    </div>
+
+    <div id="feed" class="card hidden">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <h3>Feed</h3>
+        <span class="meta" id="count"></span>
+      </div>
+      <div id="posts"></div>
+    </div>
+  </main>
+
+  <aside class="sidebar">
+    <div class="card">
+      <h3>Mi perfil</h3>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <div class="avatar" id="myAvatar">?</div>
+        <div>
+          <div id="myName" style="font-weight:700;">—</div>
+          <div class="meta">Publicaciones: <span id="myPosts">0</span></div>
+        </div>
+      </div>
+      <hr style="border:0;border-top:1px solid var(--line); margin:12px 0;">
+      <h4>Etiquetas populares</h4>
+      <div id="tagsCloud" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+// --- Storage helpers
+const db = {
+  load(key, fallback){ try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
+  save(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+};
+
+// --- State
+let USER = db.load('mini.user', null);
+let POSTS = db.load('mini.posts', []);
+
+// --- Elements
+const auth = document.getElementById('auth');
+const composer = document.getElementById('composer');
+const feed = document.getElementById('feed');
+const postsEl = document.getElementById('posts');
+const countEl = document.getElementById('count');
+const myName = document.getElementById('myName');
+const myAvatar = document.getElementById('myAvatar');
+const myPosts = document.getElementById('myPosts');
+const tagsCloud = document.getElementById('tagsCloud');
+
+// --- UI helpers
+function initials(name){ return (name||'?').split(/\s+/).map(p=>p[0]).join('').slice(0,2).toUpperCase(); }
+function now(){ return new Date().toISOString(); }
+function fmtDate(iso){ const d=new Date(iso); return d.toLocaleString(); }
+function sanitize(s){ return (s||'').replace(/[<>]/g, ''); }
+
+// --- Auth
+document.getElementById('btnLogin').onclick = () => {
+  const name = document.getElementById('username').value.trim();
+  if(!name) return alert('Escribe un usuario');
+  USER = { id: 'u-'+Date.now(), name };
+  db.save('mini.user', USER);
+  bootstrap();
+};
+document.getElementById('btnLogout').onclick = () => {
+  if(!confirm('¿Cerrar sesión? Tus posts quedarán guardados en este navegador.')) return;
+  localStorage.removeItem('mini.user');
+  USER = null;
+  bootstrap();
+};
+
+// --- Composer
+document.getElementById('btnPost').onclick = () => {
+  const text = sanitize(document.getElementById('text').value).trim();
+  const image = document.getElementById('image').value.trim();
+  const tags = (document.getElementById('tags').value.trim()||'').split(/\s+/).filter(Boolean);
+  if(!text && !image) return alert('Escribe algo o agrega una imagen');
+  const post = {
+    id: 'p-'+Date.now(),
+    user: { id: USER.id, name: USER.name },
+    text, image, tags,
+    createdAt: now(),
+    likes: [],
+    comments: []
+  };
+  POSTS.unshift(post);
+  db.save('mini.posts', POSTS);
+  document.getElementById('text').value='';
+  document.getElementById('image').value='';
+  document.getElementById('tags').value='';
+  render();
+};
+
+// --- Feed render
+function postTemplate(p){
+  const liked = USER && p.likes.includes(USER.id);
+  const tagHtml = (p.tags||[]).map(t=>`<span class="pill">${t}</span>`).join(' ');
+  const img = p.image ? `<img class="media" src="${p.image}" alt="media">` : '';
+  const canDelete = USER && USER.id===p.user.id;
+  const comments = (p.comments||[]).map(c=>`<div class="comment"><strong>${c.user.name}</strong> <span class="meta">${fmtDate(c.createdAt)}</span><div>${c.text}</div></div>`).join('');
+  return `
+  <div class="post" data-id="${p.id}">
+    <div class="avatar">${initials(p.user.name)}</div>
+    <div>
+      <div><strong>${p.user.name}</strong> • <span class="meta">${fmtDate(p.createdAt)}</span></div>
+      <div>${p.text||''}</div>
+      ${img}
+      <div style="margin-top:6px;">${tagHtml}</div>
+      <div class="actions">
+        <span class="link" onclick="toggleLike('${p.id}')">❤️ ${p.likes.length} ${liked?'(Quitar)':''}</span>
+        <span class="link" onclick="focusComment('${p.id}')">💬 Comentar</span>
+        ${canDelete?`<span class="danger" onclick="delPost('${p.id}')">Eliminar</span>`:''}
+        <a class="link" href="https://api.whatsapp.com/send?text=${encodeURIComponent(p.text)}" target="_blank">Compartir</a>
+      </div>
+      <div class="comment-box">
+        <input id="c-${p.id}" placeholder="Escribe un comentario">
+        <button class="btn ghost" onclick="addComment('${p.id}')">Enviar</button>
+      </div>
+      <div>${comments}</div>
+    </div>
+  </div>`;
+}
+
+function render(){
+  const q = (document.getElementById('q').value||'').toLowerCase();
+  const rows = POSTS.filter(p => {
+    const s = (p.user.name+' '+p.text+' '+(p.tags||[]).join(' ')).toLowerCase();
+    return !q || s.includes(q);
+  });
+  postsEl.innerHTML = rows.map(postTemplate).join('');
+  countEl.textContent = rows.length + ' publicaciones';
+  const mine = POSTS.filter(p=>USER && p.user.id===USER.id).length;
+  myPosts.textContent = mine;
+  myName.textContent = USER? USER.name : '—';
+  myAvatar.textContent = USER? initials(USER.name) : '?';
+  const map = new Map();
+  POSTS.forEach(p => (p.tags||[]).forEach(t => map.set(t, (map.get(t)||0)+1)));
+  const top = [...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+  tagsCloud.innerHTML = top.map(([t,n])=>`<span class="pill" onclick="filterTag('${t}')">${t} ${n}</span>`).join(' ');
+  auth.classList.toggle('hidden', !!USER);
+  composer.classList.toggle('hidden', !USER);
+  feed.classList.toggle('hidden', !USER);
+}
+
+function filterTag(t){
+  document.getElementById('q').value = t;
+  render();
+}
+
+function toggleLike(id){
+  const p = POSTS.find(x=>x.id===id); if(!p || !USER) return;
+  const i = p.likes.indexOf(USER.id);
+  if(i>=0) p.likes.splice(i,1); else p.likes.push(USER.id);
+  db.save('mini.posts', POSTS);
+  render();
+}
+function addComment(id){
+  const inp = document.getElementById('c-'+id);
+  const txt = sanitize(inp.value).trim();
+  if(!txt || !USER) return;
+  const p = POSTS.find(x=>x.id===id); if(!p) return;
+  p.comments.push({ id:'c-'+Date.now(), user:{id:USER.id, name:USER.name}, text:txt, createdAt:now() });
+  inp.value='';
+  db.save('mini.posts', POSTS);
+  render();
+}
+function focusComment(id){
+  document.getElementById('c-'+id)?.focus();
+}
+function delPost(id){
+  if(!confirm('¿Eliminar esta publicación?')) return;
+  POSTS = POSTS.filter(p=>p.id!==id);
+  db.save('mini.posts', POSTS);
+  render();
+}
+
+document.getElementById('btnToggleFeed').onclick = () => {
+  feed.classList.toggle('hidden');
+  document.getElementById('btnToggleFeed').textContent = feed.classList.contains('hidden') ? 'Mostrar' : 'Ocultar';
+};
+
+document.getElementById('q').addEventListener('input', ()=>render());
+
+function bootstrap(){
+  USER = db.load('mini.user', null);
+  POSTS = db.load('mini.posts', POSTS);
+  render();
+}
+bootstrap();
+
+if(!POSTS.length){
+  POSTS = [
+    { id:'p-1', user:{id:'u-1', name:'Oasis Team'}, text:'¡Bienvenidos a la mini red social hecha en HTML + JS! 🎉', image:'', tags:['#bienvenida','#oasis'], createdAt:new Date().toISOString(), likes:[], comments:[] }
+  ];
+  db.save('mini.posts', POSTS);
+  render();
+}
+</script>
+</body>
+</html>
